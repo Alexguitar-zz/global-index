@@ -1,0 +1,29 @@
+name: TradingView_Daily_Automation
+
+on:
+  schedule:
+    # 每天台灣時間 05:30 執行 (國際標準時間 UTC 21:30)
+    - cron: '30 21 * * *'
+  workflow_dispatch:      # 讓你可以點按鈕測試，這非常重要！
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. 檢出程式碼
+        uses: actions/checkout@v4
+
+      - name: 2. 設定 Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 3. 安裝必要組件
+        run: |
+          pip install selenium google-api-python-client google-auth-httplib2 google-auth-oauthlib webdriver-manager
+
+      - name: 4. 執行自動化擷取任務
+        env:
+          # 這裡會去讀取你剛才在 Settings 裡面存的那個保險箱密鑰
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        run: python main.py
