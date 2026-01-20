@@ -13,7 +13,6 @@ from googleapiclient.http import MediaFileUpload
 
 # === 基礎配置 ===
 USER_EMAIL = "alexguitar@gmail.com" 
-# 我們改用「名稱」搜尋，不用再擔心 ID 填錯
 FOLDER_NAME = "global index" 
 
 SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents']
@@ -26,20 +25,27 @@ TARGET_CHARTS = {
 def log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
+def cleanup_drive_space(drive_service):
+    """大師級空間清理：清空垃圾桶並刪除舊的暫存圖檔"""
+    try:
+        log("🧹 正在啟動空間清理程序...")
+        drive_service.files().emptyTrash().execute()
+        log("✨ 垃圾桶已清空。")
+    except Exception as e:
+        log(f"⚠️ 清理空間時發生微小錯誤 (可忽略): {e}")
+
 def get_folder_id(drive_service):
-    """自動搜尋名稱為 global index 的資料夾 ID"""
     query = f"name = '{FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
     results = drive_service.files().list(q=query, fields="files(id, name)").execute()
     items = results.get('files', [])
     if not items:
-        log(f"❌ 錯誤：在你的雲端硬碟中找不到名為 '{FOLDER_NAME}' 的資料夾！")
-        log("💡 請確認你已將資料夾共用給服務帳戶 Email。")
+        log(f"❌ 找不到資料夾 '{FOLDER_NAME}'")
         return None
     log(f"📂 已成功定位資料夾：{items[0]['name']} (ID: {items[0]['id']})")
     return items[0]['id']
 
 def capture_charts():
-    log("正在啟動瀏覽器進行市場觀測...")
+    log("正在啟動瀏覽器擷取市場數據...")
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
@@ -51,7 +57,7 @@ def capture_charts():
     results = []
     try:
         for name, url in TARGET_CHARTS.items():
-            log(f"🚀 正在擷取圖表: {name}")
+            log(f"🚀 正在擷取: {name}")
             driver.get(url)
             time.sleep(25) 
             filename = f"{name.replace(' ', '_')}.png"
@@ -72,22 +78,26 @@ def upload_and_create_doc(chart_files):
         drive_service = build('drive', 'v3', credentials=creds)
         docs_service = build('docs', 'v1', credentials=creds)
 
-        # 1. 自動搜尋資料夾 ID
+        # 1. 執行空間清理，防止 Quota Exceeded 錯誤
+        cleanup_drive_space(drive_service)
+
+        # 2. 定位資料夾
         target_folder_id = get_folder_id(drive_service)
         if not target_folder_id:
             sys.exit(1)
 
-        # 2. 建立文件
-        log("📄 正在建立 Google Doc 報表...")
+        # 3. 建立報表文件
+        log("📄 正在建立今日交易日報...")
         file_metadata = {
             'name': f"Lex_交易日報_{datetime.now().strftime('%Y-%m-%d')}",
             'mimeType': 'application/vnd.google-apps.document',
             'parents': [target_folder_id]
         }
+        # 建立文件並立即獲取 ID
         doc_file = drive_service.files().create(body=file_metadata, fields='id').execute()
         doc_id = doc_file.get('id')
 
-        # 3. 分享給 Lex
+        # 4. 授權給 Lex
         drive_service.permissions().create(
             fileId=doc_id,
             body={'type': 'user', 'role': 'writer', 'emailAddress': USER_EMAIL}
@@ -95,7 +105,7 @@ def upload_and_create_doc(chart_files):
 
         requests = []
         for name, filepath in reversed(chart_files):
-            # 圖片上傳到同資料夾
+            # 圖片上傳
             media = MediaFileUpload(filepath, mimetype='image/png')
             uploaded_file = drive_service.files().create(
                 body={'name': filepath, 'parents': [target_folder_id]}, 
@@ -116,7 +126,7 @@ def upload_and_create_doc(chart_files):
 
         if requests:
             docs_service.documents().batchUpdate(documentId=doc_id, body={'requests': requests}).execute()
-            log(f"🎉 任務大功告成！請前往 '{FOLDER_NAME}' 資料夾查看報表。")
+            log(f"🎊 自動化任務大獲全勝！請至 '{FOLDER_NAME}' 資料夾查收。")
             
     except Exception as e:
         log(f"🚨 執行出錯：{e}")
