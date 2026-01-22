@@ -10,7 +10,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 # === 基礎配置 ===
 # 貼上你剛才部署完產生的 GAS URL
-GAS_URL = "https://script.google.com/macros/s/AKfycbzlzL_gE_0nfqDI4dOt1wV7q4o6LUfL0DFwbesZk9M/dev"
+GAS_URL = "https://script.google.com/macros/s/AKfycbzUv3MQ9mMxpj6GqfUWHDGzDpLq7wv2Zyv8mLNAqb3NBQvrz4NUnEQMbaaPv1Y8Bd6N/exec"
 
 TARGET_CHARTS = {
     "S&P 500": "https://www.tradingview.com/chart/?symbol=SPX",
