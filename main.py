@@ -11,10 +11,8 @@ from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 
 # === 基礎配置 ===
-# 請填入你剛剛「重新部署」後得到的最新 URL
-GAS_URL = "https://script.google.com/macros/s/AKfycbzUv3MQ9mMxpj6GqfUWHDGzDpLq7wv2Zyv8mLNAqb3NBQvrz4NUnEQMbaaPv1Y8Bd6N/exec"
+GAS_URL = "你的最新_GAS_URL"
 
-# 你的 2 張圖測試清單
 TARGET_CHARTS = {
     "1. S&P 500 指數": "https://www.tradingview.com/chart/?symbol=SPX",
     "2. 台積電 (2330)": "https://www.tradingview.com/chart/?symbol=TWSE:2330"
@@ -34,35 +32,35 @@ def capture_and_send():
         for name, url in TARGET_CHARTS.items():
             print(f"🚀 正在進入 {name}...")
             driver.get(url)
-            time.sleep(15) # 等待基礎框架讀取
-            
-            # 使用鍵盤模擬方式切換到 6個月 (6M) 視圖
-            # 在 TradingView 畫面直接按 1, 8, 0, 天 (180D) 是最穩定的切換範圍方式
+            time.sleep(15) 
+
+            # --- 修正廣告與時間範圍 ---
             try:
-                print("   -> 正在切換時間範圍 (約180天)...")
+                # 1. 模擬按下 ESC 鍵兩次，這可以關閉大部分 TradingView 的彈出廣告
                 actions = webdriver.ActionChains(driver)
-                actions.send_keys("180D")
-                actions.send_keys(Keys.ENTER)
-                actions.perform()
-                time.sleep(10) # 等待圖表縮放
+                actions.send_keys(Keys.ESCAPE).perform()
+                time.sleep(1)
+                actions.send_keys(Keys.ESCAPE).perform()
+                
+                # 2. 強制刪除網頁上的廣告元素 (JavaScript)
+                driver.execute_script("""
+                    var ads = document.querySelectorAll('[class*="overlap"], [class*="dialog"], [class*="popup"]');
+                    for (var i = 0; i < ads.length; i++) { ads[i].remove(); }
+                """)
+
+                # 3. 切換到 6M 視圖 (按 180D + ENTER)
+                print("   -> 正在切換至半年視圖...")
+                actions.send_keys("180D").send_keys(Keys.ENTER).perform()
+                time.sleep(10) 
             except Exception as e:
-                print(f"   -> ⚠️ 切換失敗: {e}")
+                print(f"   -> ⚠️ 處理彈窗失敗: {e}")
 
             print(f"📷 正在擷取截圖...")
             screenshot_b64 = driver.get_screenshot_as_base64()
             
-            payload = {
-                "name": name,
-                "image_data": screenshot_b64
-            }
-            print(f"📡 正在傳送 {name}...")
+            payload = {"name": name, "image_data": screenshot_b64}
             response = requests.post(GAS_URL, json=payload)
-            
-            # 檢查傳送結果，避免 Page Not Found
-            if "Page Not Found" in response.text:
-                print(f"❌ 傳送失敗：GAS 網址無效或未授權。請重新部署 GAS 為新版本！")
-            else:
-                print(f"✅ {name} 傳送結果: {response.text}")
+            print(f"✅ {name} 傳送結果: {response.text}")
             
     except Exception as e:
         print(f"🚨 執行出錯: {e}")
