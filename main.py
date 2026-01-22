@@ -19,12 +19,8 @@ GAS_URL = "https://script.google.com/macros/s/AKfycbuZv3MQ9mMxpj6GqfUWHDGzDpLq7w
 # 戰情清單
 TARGET_CHARTS = {
     "1. S&P 500 指數": "https://www.tradingview.com/chart/?symbol=SPX",
-    "2. NVIDIA (AI 領頭羊)": "https://www.tradingview.com/chart/?symbol=NASDAQ:NVDA",
-    "3. Micron (記憶體風向)": "https://www.tradingview.com/chart/?symbol=NASDAQ:MU",
-    "4. 台灣加權指數": "https://www.tradingview.com/chart/?symbol=TWSE:TAIEX",
-    "5. 台積電 (2330)": "https://www.tradingview.com/chart/?symbol=TWSE:2330",
-    "6. 南亞科 (2408)": "https://www.tradingview.com/chart/?symbol=TWSE:2408",
-    "7. 華邦電 (2344)": "https://www.tradingview.com/chart/?symbol=TWSE:2344"
+    "2. 台積電 (2330)": "https://www.tradingview.com/chart/?symbol=TWSE:2330"
+ 
 }
 
 def capture_and_send():
