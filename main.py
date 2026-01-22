@@ -10,7 +10,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 # === 基礎配置 ===
 # 貼上你剛才部署完產生的 GAS URL
-GAS_URL = "你的_GAS_網頁應用程式_URL"
+GAS_URL = "https://script.google.com/macros/s/AKfycbzlzL_gE_0nfqDI4dOt1wV7q4o6LUfL0DFwbesZk9M/dev"
 
 TARGET_CHARTS = {
     "S&P 500": "https://www.tradingview.com/chart/?symbol=SPX",
