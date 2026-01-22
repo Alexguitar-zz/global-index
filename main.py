@@ -10,8 +10,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 
-# === 基礎配置 ===
-GAS_URL = "你的最新_GAS_URL"
+# === 【最重要】請將下方引號內的文字替換為你剛剛在 GAS 得到的 URL ===
+GAS_URL = "https://script.google.com/macros/s/AKfycbzUv3MQ9mMxpj6GqfUWHDGzDpLq7wv2Zyv8mLNAqb3NBQvrz4NUnEQMbaaPv1Y8Bd6N/exec"
 
 TARGET_CHARTS = {
     "1. S&P 500 指數": "https://www.tradingview.com/chart/?symbol=SPX",
@@ -32,28 +32,30 @@ def capture_and_send():
         for name, url in TARGET_CHARTS.items():
             print(f"🚀 正在進入 {name}...")
             driver.get(url)
-            time.sleep(15) 
+            time.sleep(18) # 增加等待時間確保圖表完全加載
 
-            # --- 修正廣告與時間範圍 ---
+            # --- 強力廣告清除與時間範圍切換 ---
             try:
-                # 1. 模擬按下 ESC 鍵兩次，這可以關閉大部分 TradingView 的彈出廣告
+                # 1. 模擬 ESC 鍵關閉彈窗
                 actions = webdriver.ActionChains(driver)
                 actions.send_keys(Keys.ESCAPE).perform()
                 time.sleep(1)
-                actions.send_keys(Keys.ESCAPE).perform()
                 
-                # 2. 強制刪除網頁上的廣告元素 (JavaScript)
+                # 2. 用 JavaScript 強制刪除所有遮罩與廣告視窗 (針對藍色彈窗優化)
                 driver.execute_script("""
-                    var ads = document.querySelectorAll('[class*="overlap"], [class*="dialog"], [class*="popup"]');
-                    for (var i = 0; i < ads.length; i++) { ads[i].remove(); }
+                    var ads = document.querySelectorAll('[class*="overlap"], [class*="dialog"], [class*="popup"], [class*="drawer"]');
+                    ads.forEach(el => el.remove());
+                    // 移除特定廣告遮罩層
+                    var backdrop = document.querySelector('.tv-dialog__backdrop');
+                    if(backdrop) backdrop.remove();
                 """)
 
-                # 3. 切換到 6M 視圖 (按 180D + ENTER)
+                # 3. 切換至半年 (180D) 視圖，確保範圍從去年9月開始
                 print("   -> 正在切換至半年視圖...")
                 actions.send_keys("180D").send_keys(Keys.ENTER).perform()
-                time.sleep(10) 
+                time.sleep(12) 
             except Exception as e:
-                print(f"   -> ⚠️ 處理彈窗失敗: {e}")
+                print(f"   -> ⚠️ 廣告處理出錯: {e}")
 
             print(f"📷 正在擷取截圖...")
             screenshot_b64 = driver.get_screenshot_as_base64()
