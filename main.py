@@ -1,74 +1,43 @@
-import os
-import time
-import base64
-import requests
 import sys
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from webdriver_manager.chrome import ChromeDriverManager
 
-# === 【最重要】請將下方引號內的文字替換為你剛剛在 GAS 得到的 URL ===
-GAS_URL = "https://script.google.com/macros/s/AKfycbzUv3MQ9mMxpj6GqfUWHDGzDpLq7wv2Zyv8mLNAqb3NBQvrz4NUnEQMbaaPv1Y8Bd6N/exec"
+from api_utils import send_screenshot
+from browser_utils import (
+    capture_screenshot,
+    create_driver,
+    dismiss_popups,
+    load_chart,
+    switch_time_range,
+)
+from config import GAS_URL, TARGET_CHARTS
 
-TARGET_CHARTS = {
-    "1. S&P 500 指數": "https://www.tradingview.com/chart/?symbol=SPX",
-    "2. 台積電 (2330)": "https://www.tradingview.com/chart/?symbol=TWSE:2330"
-}
 
 def capture_and_send():
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    
+    driver = create_driver()
+
     try:
         for name, url in TARGET_CHARTS.items():
-            print(f"🚀 正在進入 {name}...")
-            driver.get(url)
-            time.sleep(18) # 增加等待時間確保圖表完全加載
+            print(f"正在進入 {name}...")
+            load_chart(driver, url)
 
-            # --- 強力廣告清除與時間範圍切換 ---
             try:
-                # 1. 模擬 ESC 鍵關閉彈窗
-                actions = webdriver.ActionChains(driver)
-                actions.send_keys(Keys.ESCAPE).perform()
-                time.sleep(1)
-                
-                # 2. 用 JavaScript 強制刪除所有遮罩與廣告視窗 (針對藍色彈窗優化)
-                driver.execute_script("""
-                    var ads = document.querySelectorAll('[class*="overlap"], [class*="dialog"], [class*="popup"], [class*="drawer"]');
-                    ads.forEach(el => el.remove());
-                    // 移除特定廣告遮罩層
-                    var backdrop = document.querySelector('.tv-dialog__backdrop');
-                    if(backdrop) backdrop.remove();
-                """)
-
-                # 3. 切換至半年 (180D) 視圖，確保範圍從去年9月開始
+                dismiss_popups(driver)
                 print("   -> 正在切換至半年視圖...")
-                actions.send_keys("180D").send_keys(Keys.ENTER).perform()
-                time.sleep(12) 
+                switch_time_range(driver)
             except Exception as e:
-                print(f"   -> ⚠️ 廣告處理出錯: {e}")
+                print(f"   -> 廣告處理出錯: {e}")
 
-            print(f"📷 正在擷取截圖...")
-            screenshot_b64 = driver.get_screenshot_as_base64()
-            
-            payload = {"name": name, "image_data": screenshot_b64}
-            response = requests.post(GAS_URL, json=payload)
-            print(f"✅ {name} 傳送結果: {response.text}")
-            
+            print("正在擷取截圖...")
+            screenshot_b64 = capture_screenshot(driver)
+
+            result = send_screenshot(GAS_URL, name, screenshot_b64)
+            print(f"{name} 傳送結果: {result}")
+
     except Exception as e:
-        print(f"🚨 執行出錯: {e}")
+        print(f"執行出錯: {e}")
         sys.exit(1)
     finally:
         driver.quit()
+
 
 if __name__ == "__main__":
     capture_and_send()
