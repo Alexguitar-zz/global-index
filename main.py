@@ -1,17 +1,18 @@
 import os
 import time
-import base64
 import requests
 import sys
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 
-# === 【最重要】請將下方引號內的文字替換為你剛剛在 GAS 得到的 URL ===
-GAS_URL = "https://script.google.com/macros/s/AKfycbzUv3MQ9mMxpj6GqfUWHDGzDpLq7wv2Zyv8mLNAqb3NBQvrz4NUnEQMbaaPv1Y8Bd6N/exec"
+# === 【最重要】請在環境變數或 GitHub Secrets 中設定 GAS_URL ===
+GAS_URL = os.environ.get("GAS_URL")
+if not GAS_URL:
+    print("🚨 錯誤: 環境變數 GAS_URL 未設定。請在 GitHub Secrets 中設定。")
+    sys.exit(1)
 
 TARGET_CHARTS = {
     "1. S&P 500 指數": "https://www.tradingview.com/chart/?symbol=SPX",
@@ -61,7 +62,8 @@ def capture_and_send():
             screenshot_b64 = driver.get_screenshot_as_base64()
             
             payload = {"name": name, "image_data": screenshot_b64}
-            response = requests.post(GAS_URL, json=payload)
+            response = requests.post(GAS_URL, json=payload, timeout=30)
+            response.raise_for_status()
             print(f"✅ {name} 傳送結果: {response.text}")
             
     except Exception as e:
